@@ -13,6 +13,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <linux/limits.h>
 
 int main() {
   const char * pass = "opensesame";
@@ -28,16 +29,15 @@ int main() {
   char entry[150];
   char filename[65];
   char currenttime[20];
+  char ppath[PATH_MAX];
 
   char * appendstr;
-  char * filepath;
   char * diarystr;
   char * setpass;
   char * reenter;
   char * diary;
 
   appendstr = malloc(sizeof(char) * 1024);
-  filepath = malloc(sizeof(char) * 1024);
   diarystr = malloc(sizeof(char) * 1024);
   diary = malloc(sizeof(char) * 1024);
 
@@ -175,11 +175,11 @@ int main() {
     landingmsg();
 
   } else {
+    strcat(strcpy(ppath, getenv("HOME")), "/.config/memoirpass/pass.txt");
     printf("Welcome to the introduction for your personalised diary."
       "\nIt seems you don't have a password set, let's fix that!\n");
     promptpass();
-    strcat(strcpy(filepath, getenv("HOME")), "/.config/memoirpass/pass.txt");
-    pc = fopen("filepath", "w");
+    pc = fopen(ppath, "w");
     fprintf(pc, "%s", setpass);
     fclose(pc);
     printf("%s will now be set as your password on next launch.\n\n", setpass);
@@ -196,7 +196,6 @@ int main() {
 
   free(appendstr);
   free(diarystr);
-  free(filepath);
   free(setpass);
   free(reenter);
   free(diary);
