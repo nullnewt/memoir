@@ -31,6 +31,7 @@ int main() {
   char currenttime[20];
   char ppath[PATH_MAX];
   char docent[PATH_MAX];
+  char doc[PATH_MAX];
 
   char * appendstr;
   char * diarystr;
@@ -49,11 +50,12 @@ int main() {
   FILE * fp;
   FILE * pc;
 
+  strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
   strcat(strcpy(ppath, getenv("HOME")), "/.config/memoirpass/pass.txt");
 
   void timestamp() {
-    strftime(filename, sizeof(filename), "/mnt/c/Users/Me Lol/Desktop/diary/%d-%m-%Y.txt", timenow);
+    strftime(filename, sizeof(filename), doc, timenow);
     strftime(currenttime, 20, "%I:%M%p: ", timenow);
   }
 
