@@ -16,6 +16,7 @@
 #include <linux/limits.h>
 
 int main() {
+  const char * documents = "documents";
   const char * pass = "opensesame";
   const char * append = "append";
   const char * create = "create";
@@ -24,12 +25,12 @@ int main() {
   const char * yes = "yes";
   const char * fin = "fin";
   const char * no = "no";
-  const char * documents = "docuemnts";
 
   char entry[150];
   char filename[65];
   char currenttime[20];
   char ppath[PATH_MAX];
+  char docent[PATH_MAX];
 
   char * appendstr;
   char * diarystr;
@@ -47,6 +48,9 @@ int main() {
 
   FILE * fp;
   FILE * pc;
+
+  strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
+  strcat(strcpy(ppath, getenv("HOME")), "/.config/memoirpass/pass.txt");
 
   void timestamp() {
     strftime(filename, sizeof(filename), "/mnt/c/Users/Me Lol/Desktop/diary/%d-%m-%Y.txt", timenow);
@@ -111,8 +115,7 @@ int main() {
       }
     }
   }
-
-  if (access("/mnt/c/Users/Me Lol/AppData/Local/pass/pass.txt", F_OK) == 0) {
+  if (access(ppath, F_OK) == 0) {
     while (1) {
       printf("Please enter the password to your diary: ");
       scanf("%s", entry);
@@ -175,7 +178,6 @@ int main() {
     landingmsg();
 
   } else {
-    strcat(strcpy(ppath, getenv("HOME")), "/.config/memoirpass/pass.txt");
     printf("Welcome to the introduction for your personalised diary."
       "\nIt seems you don't have a password set, let's fix that!\n");
     promptpass();
@@ -185,11 +187,11 @@ int main() {
     printf("%s will now be set as your password on next launch.\n\n", setpass);
     printf("It seems you also don't have a folder directory set for your diary entries.\n"
       "Would you like to set it on your own or have it in your docuemnts folder?\n"
-      "Please choose \"docuemnts\" or \"own\"");
+      "Please choose \"docuemnts\" or \"own\"\n");
     while (1) {
       scanf("%s", entry);
-      if (strcmp(documents, entry) == 0)
-        mkdir("$HOME/Documents/MemEntries", 0700);
+      if (strcmp(documents, entry) == 0) 
+        mkdir(docent, 0700);
       printf("Successfully made folder.");
     }
   }
