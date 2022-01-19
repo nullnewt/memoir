@@ -29,9 +29,10 @@ int main() {
   char entry[150];
   char filename[65];
   char currenttime[20];
-  char ppath[PATH_MAX];
+  char passtxt[PATH_MAX];
   char docent[PATH_MAX];
   char doc[PATH_MAX];
+  char paspath[PATH_MAX];
 
   char * appendstr;
   char * diarystr;
@@ -52,7 +53,9 @@ int main() {
 
   strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
-  strcat(strcpy(ppath, getenv("HOME")), "/.config/memoirpass/pass.txt");
+  strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
+  strcat(strcpy(paspath, getenv("HOME")), "/.config/memoirpass/");
+
 
   void timestamp() {
     strftime(filename, sizeof(filename), doc, timenow);
@@ -117,7 +120,7 @@ int main() {
       }
     }
   }
-  if (access(ppath, F_OK) == 0) {
+  if (access(passtxt, F_OK) == 0) {
     while (1) {
       printf("Please enter the password to your diary: ");
       scanf("%s", entry);
@@ -183,7 +186,8 @@ int main() {
     printf("Welcome to the introduction for your personalised diary."
       "\nIt seems you don't have a password set, let's fix that!\n");
     promptpass();
-    pc = fopen(ppath, "w");
+    mkdir(paspath, 0700);
+    pc = fopen(passtxt, "w");
     fprintf(pc, "%s", setpass);
     fclose(pc);
     printf("%s will now be set as your password on next launch.\n\n", setpass);
@@ -194,7 +198,12 @@ int main() {
       scanf("%s", entry);
       if (strcmp(documents, entry) == 0) 
         mkdir(docent, 0700);
-      printf("Successfully made folder.");
+      printf("Successfully made folder.");      
+    }else if(strcmp(own, entry) == 0 ) {
+
+
+      }
+
     }
   }
 
