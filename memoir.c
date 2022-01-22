@@ -19,7 +19,6 @@
 
 int main() {
   const char * documents = "documents";
-  const char * pass = "opensesame";
   const char * append = "append";
   const char * create = "create";
   const char * view = "view";
@@ -50,9 +49,9 @@ int main() {
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
-  FILE * fp; 
+  FILE * fp;
   FILE * pc;
- 
+
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
@@ -120,6 +119,18 @@ int main() {
       }
     }
   }
+
+  FILE * f = fopen(passtxt, "rb");
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+
+  char * pass = malloc(fsize + 1);
+  fread(pass, fsize, 1, f);
+  fclose(f);
+
+  pass[fsize] = 0;
+
   if (access(passtxt, F_OK) == 0) {
     while (1) {
       printf("Please enter the password to your diary: ");
@@ -196,23 +207,23 @@ int main() {
       "Please choose \"docuemnts\" or \"own\"\n");
     while (1) {
       scanf("%s", entry);
-    if (strcmp(documents, entry) == 0){
-      mkdir(docent, 0700);
-      printf("Chosen directory created.");
-      break;
+      if (strcmp(documents, entry) == 0) {
+        mkdir(docent, 0700);
+        printf("Chosen directory created.");
+        break;
+      } else {
+        scanf("%s", entry);
+        mkdir(entry, 0700);
+        printf("Chosen directory created.");
       }
-    else{
-      scanf("%s",entry);
-      mkdir(entry, 0700);
-      printf("Chosen directory created.");
-     }
     }
-   } 
+  }
   free(appendstr);
   free(diarystr);
   free(setpass);
   free(reenter);
   free(diary);
+  free(pass);
 
   return (0);
 }
