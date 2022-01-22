@@ -5,6 +5,8 @@
 
 // add $home etc and same for windows so it works for all systems - enviroment variables
 
+// improve directory creation for user choice, currently starts the creation in the memoir directory.
+
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -32,7 +34,7 @@ int main() {
   char passtxt[PATH_MAX];
   char docent[PATH_MAX];
   char doc[PATH_MAX];
-  char paspath[PATH_MAX];
+  char passpath[PATH_MAX];
 
   char * appendstr;
   char * diarystr;
@@ -48,16 +50,15 @@ int main() {
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
-  FILE * fp;
+  FILE * fp; 
   FILE * pc;
-
-  strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
+ 
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
-  strcat(strcpy(paspath, getenv("HOME")), "/.config/memoirpass/");
-
+  strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
 
   void timestamp() {
+    strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
     strftime(filename, sizeof(filename), doc, timenow);
     strftime(currenttime, 20, "%I:%M%p: ", timenow);
   }
@@ -106,7 +107,6 @@ int main() {
     while (1) {
       printf("Is your entry complete? yes or no: ");
       scanf("%s", entry);
-
       if (strcmp(yes, entry) == 0) {
         screenwipe();
         landingmsg();
@@ -124,7 +124,6 @@ int main() {
     while (1) {
       printf("Please enter the password to your diary: ");
       scanf("%s", entry);
-
       if (strcmp(pass, entry) == 0) { //compare strings
         printf("You entered the right password!\n");
         screenwipe();
@@ -154,7 +153,7 @@ int main() {
           } else if (strcmp(view, entry) == 0) {
             DIR * d; // directory pointer
             struct dirent * dir;
-            d = opendir("/mnt/c/Users/Me Lol/Desktop/diary/"); // set dir
+            d = opendir(doc); // set dir
             if (d) {
               while ((dir = readdir(d)) != NULL) { // read dir
                 printf("%s\n", dir -> d_name); // print directory in char 
@@ -165,7 +164,8 @@ int main() {
             landingmsg();
           } else if (strcmp(help, entry) == 0) {
             printf("Current list of commands: \n\nThe \"create\" entry will make a new diary entry text file with the date set as the name of the file."
-              "\n\nThe \"append\" entry will append text to the last file created, including time before user input.\n\nThe \"fin\" entry will leave the prompt.\n"
+              "\n\nThe \"append\" entry will append text to the last file created, including time before user input.\n"
+              "\nThe \"fin\" entry will leave the prompt.\n"
               "\nThe \"view\" entry will list the current files in the diary directory.\n");
           } else if (strcmp(fin, entry) == 0) {
             printf("Exiting...\n");
@@ -186,7 +186,7 @@ int main() {
     printf("Welcome to the introduction for your personalised diary."
       "\nIt seems you don't have a password set, let's fix that!\n");
     promptpass();
-    mkdir(paspath, 0700);
+    mkdir(passpath, 0700);
     pc = fopen(passtxt, "w");
     fprintf(pc, "%s", setpass);
     fclose(pc);
@@ -196,17 +196,18 @@ int main() {
       "Please choose \"docuemnts\" or \"own\"\n");
     while (1) {
       scanf("%s", entry);
-      if (strcmp(documents, entry) == 0) 
-        mkdir(docent, 0700);
-      printf("Successfully made folder.");      
-    }else if(strcmp(own, entry) == 0 ) {
-
-
+    if (strcmp(documents, entry) == 0){
+      mkdir(docent, 0700);
+      printf("Chosen directory created.");
+      break;
       }
-
+    else{
+      scanf("%s",entry);
+      mkdir(entry, 0700);
+      printf("Chosen directory created.");
+     }
     }
-  }
-
+   } 
   free(appendstr);
   free(diarystr);
   free(setpass);
