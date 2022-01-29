@@ -5,7 +5,6 @@
 
 // add $home etc and same for windows so it works for all systems - enviroment variables
 
-// improve directory creation for user choice, currently starts the creation in the memoir directory.
 
 #include <string.h>
 #include <unistd.h>
@@ -23,9 +22,10 @@ int main() {
   const char* create = "create";
   const char* view = "view";
   const char* help = "help";
-  const char* yes = "yes";
+  const char* y = "y";
+  const char* n = "n";
   const char* fin = "fin";
-  const char* no = "no";
+
 
   char entry[150];
   char filename[65];
@@ -58,6 +58,7 @@ int main() {
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
 
+
   void timestamp() {
     strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
     strftime(filename, sizeof(filename), doc, timenow);
@@ -88,13 +89,13 @@ int main() {
 
   void promptapp() {
     while (1) {
-      printf("Is your entry complete? yes or no: ");
+      printf("Is your entry complete? y or n: ");
       scanf("%s", entry);
-      if (strcmp(yes, entry) == 0) {
+      if (strcmp(y, entry) == 0) {
         screenwipe();
         landingmsg();
         break;
-      } else if (strcmp(no, entry) == 0) {
+      } else if (strcmp(n, entry) == 0) {
         fp = fopen(filename, "a");
         printf("%s ", appendstr);
         scanf(" %[^\n]s*c", diarystr);
@@ -106,13 +107,13 @@ int main() {
 
   void promptcre() {
     while (1) {
-      printf("Is your entry complete? yes or no: ");
+      printf("Is your entry complete? y or n: ");
       scanf("%s", entry);
-      if (strcmp(yes, entry) == 0) {
+      if (strcmp(y, entry) == 0) {
         screenwipe();
         landingmsg();
         break;
-      } else if (strcmp(no, entry) == 0) {
+      } else if (strcmp(n, entry) == 0) {
         fp = fopen(filename, "w+");
         printf("%s ", diary);
         scanf(" %[^\n]s*c", diarystr);
@@ -129,7 +130,7 @@ int main() {
       FILE * f = fopen(passtxt, "r");
       fseek(f, 0, SEEK_END);
       long fsize = ftell(f);
-      fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+      fseek(f, 0, SEEK_SET); 
 
       char * pass = malloc(fsize + 1);
       fread(pass, fsize, 1, f);
@@ -216,6 +217,8 @@ int main() {
         printf("Chosen directory created.");
         break;
       } else {
+        chdir(getenv("HOME"));
+        printf("Current working directory: %s\n",getenv("HOME"));
         scanf("%s", entry);
         mkdir(entry, 0700);
         printf("Chosen directory created.");
