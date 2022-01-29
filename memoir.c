@@ -18,14 +18,14 @@
 #include <linux/limits.h>
 
 int main() {
-  const char * documents = "documents";
-  const char * append = "append";
-  const char * create = "create";
-  const char * view = "view";
-  const char * help = "help";
-  const char * yes = "yes";
-  const char * fin = "fin";
-  const char * no = "no";
+  const char* documents = "documents";
+  const char* append = "append";
+  const char* create = "create";
+  const char* view = "view";
+  const char* help = "help";
+  const char* yes = "yes";
+  const char* fin = "fin";
+  const char* no = "no";
 
   char entry[150];
   char filename[65];
@@ -35,22 +35,24 @@ int main() {
   char doc[PATH_MAX];
   char passpath[PATH_MAX];
 
-  char * appendstr;
-  char * diarystr;
-  char * setpass;
-  char * reenter;
-  char * diary;
+  char* appendstr;
+  char* diarystr;
+  char* setpass;
+  char* reenter;
+  char* diary;
+  char* passcheck;
 
   appendstr = malloc(sizeof(char) * 1024);
   diarystr = malloc(sizeof(char) * 1024);
   diary = malloc(sizeof(char) * 1024);
 
-  struct tm * timenow;
+  struct tm* timenow;
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
-  FILE * fp;
-  FILE * pc;
+  FILE* fp;
+  FILE* pc;
+  DIR* d;
 
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
@@ -120,30 +122,29 @@ int main() {
     }
   }
 
-  FILE * f = fopen(passtxt, "rb");
-  fseek(f, 0, SEEK_END);
-  long fsize = ftell(f);
-  fseek(f, 0, SEEK_SET); /* same as rewind(f); */
 
-  char * pass = malloc(fsize + 1);
-  fread(pass, fsize, 1, f);
-  fclose(f);
-
-  pass[fsize] = 0;
 
   if (access(passtxt, F_OK) == 0) {
     while (1) {
-      printf("Please enter the password to your diary: ");
-      scanf("%s", entry);
-      if (strcmp(pass, entry) == 0) { //compare strings
+      FILE * f = fopen(passtxt, "r");
+      fseek(f, 0, SEEK_END);
+      long fsize = ftell(f);
+      fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+
+      char * pass = malloc(fsize + 1);
+      fread(pass, fsize, 1, f);
+      fclose(f);
+
+      pass[fsize] = 0;
+
+      passcheck = strdup(getpass("Please enter the password to your diary: "));
+      if (strcmp(pass, passcheck) == 0) { //compare strings
         printf("You entered the right password!\n");
         screenwipe();
         landingmsg();
         while (1) {
           scanf("%s", entry);
-          if (fp == NULL) {
-            perror("Error opening your file. ");
-          } else if (strcmp(append, entry) == 0) {
+            if (strcmp(append, entry) == 0) {
             timestamp();
             fp = fopen(filename, "a");
             screenwipe();
@@ -156,13 +157,12 @@ int main() {
             timestamp();
             fp = fopen(filename, "w"); // creates file
             screenwipe(); // wipes  cmd again for diary entry
-            printf("Begin diary entry:\nPress enter to confirm your diary entry.\n"); // diary entry prompt 
+            printf("Begin diary entry:\nPress enter to confirm your diary entry.\n"); 
             scanf(" %[^\n]s", diary); // takes diary entry 
             fprintf(fp, "%s%s\n", currenttime, diary);
             fclose(fp); // close the file after entry is done
             promptcre();
           } else if (strcmp(view, entry) == 0) {
-            DIR * d; // directory pointer
             struct dirent * dir;
             d = opendir(doc); // set dir
             if (d) {
@@ -174,8 +174,11 @@ int main() {
             sleep(1);
             landingmsg();
           } else if (strcmp(help, entry) == 0) {
-            printf("Current list of commands: \n\nThe \"create\" entry will make a new diary entry text file with the date set as the name of the file."
-              "\n\nThe \"append\" entry will append text to the last file created, including time before user input.\n"
+            printf("Current list of commands: \n\nThe \"create\" "
+              "entry will make a new diary entry text file"
+              "with the date set as the name of the file."
+              "\n\nThe \"append\" entry will append text to the last file created,"
+              "including time before user input.\n"
               "\nThe \"fin\" entry will leave the prompt.\n"
               "\nThe \"view\" entry will list the current files in the diary directory.\n");
           } else if (strcmp(fin, entry) == 0) {
@@ -183,7 +186,8 @@ int main() {
             sleep(1);
             break;
           } else {
-            printf("Please enter a command. Entry is case sensitive. \nUse the help option to list commands.\n");
+            printf("Please enter a command. Entry is case sensitive."
+              "\nUse the help option to list commands.\n");
           }
         }
       } else {
@@ -223,7 +227,5 @@ int main() {
   free(setpass);
   free(reenter);
   free(diary);
-  free(pass);
-
   return (0);
 }
