@@ -1,9 +1,9 @@
 // TODO:
-
-// add ability to create a new diary folder for the user if there isn't one
-// https://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c
-
 // add $home etc and same for windows so it works for all systems - enviroment variables
+// look into encryption of password and entries.
+// signature: this is the file that you want to encrypt
+// encrypted: the file which encrypted from "signature"
+// decrypted: the file which decrypted from "encrypted", it should be the same as "signature"
 
 
 #include <string.h>
@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <linux/limits.h>
+#include <openssl/aes.h>
 
 int main() {
   const char* documents = "documents";
@@ -26,14 +27,20 @@ int main() {
   const char* n = "n";
   const char* fin = "fin";
 
+  unsigned char indata[AES_BLOCK_SIZE];
+  unsigned char outdata[AES_BLOCK_SIZE];
+  unsigned char decryptdata[AES_BLOCK_SIZE];
+  unsigned char userkey[] = "\x09\x8F\x6B\xCD\x46\x21\xD3\x73\xCA\xDE\x4E\x83\x26\x27\xB4\xF6";
+  unsigned char IV[] = "\x0A\x91\x72\x71\x6A\xE6\x42\x84\x09\x88\x5B\x8B\x82\x9C\xCB\x05";
+
 
   char entry[150];
   char filename[65];
   char currenttime[20];
   char passtxt[PATH_MAX];
+  char passpath[PATH_MAX];
   char docent[PATH_MAX];
   char doc[PATH_MAX];
-  char passpath[PATH_MAX];
 
   char* appendstr;
   char* diarystr;
@@ -50,14 +57,16 @@ int main() {
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
+  AES_KEY key;
+
   FILE* fp;
   FILE* pc;
   DIR* d;
 
+  strcat(strcpy(encpass, getenv("HOME")),".config/memoirpass/passenc.txt");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
-
 
   void timestamp() {
     strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
@@ -101,8 +110,8 @@ int main() {
         scanf(" %[^\n]s*c", diarystr);
         fprintf(fp, "%s%s %s\n", currenttime, appendstr, diarystr);
         fclose(fp);
-      }
-    }
+        }
+     }
   }
 
   void promptcre() {
@@ -119,9 +128,28 @@ int main() {
         scanf(" %[^\n]s*c", diarystr);
         fprintf(fp, "%s%s %s", currenttime, diary, diarystr);
         fclose(fp);
-      }
-    }
+        }
   }
+}
+
+  void(encrypt){
+    file *ifp, *ofp;
+    ifp = fopen(encpass, "r+");
+    ofp = fopen(passtxt, "w+");
+    int postion = 0;
+    int bytes_read, bytes_write;
+    while(1){
+      unsigned char ivec[AES_BLOCK_SIZE];
+      memcpy(ivec, IV, AES_BLOCK_SIZE);
+      bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
+      AES_cfb128_encrypt(indata, outdata, bytes_read, &key, ivec, &postion, AES_ENCRYPT);
+      bytes_write = fwrite(outdata, 1, bytes_read, ofp);
+      if (bytes_read < AES_BLOCK_SIZE)
+        break;
+  }
+  fclose(ifp);
+  fclose(ofp);
+}
 
 
 
@@ -215,7 +243,6 @@ int main() {
       if (strcmp(documents, entry) == 0) {
         mkdir(docent, 0700);
         printf("Chosen directory created.");
-        break;
       } else {
         chdir(getenv("HOME"));
         printf("Current working directory: %s\n",getenv("HOME"));
