@@ -133,7 +133,7 @@ int main() {
 }
 
   void(encrypt){
-    file *ifp, *ofp;
+    FILE *ifp, *ofp;
     ifp = fopen(encpass, "r+");
     ofp = fopen(passtxt, "w+");
     int postion = 0;
@@ -146,12 +146,29 @@ int main() {
       bytes_write = fwrite(outdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
         break;
-  }
-  fclose(ifp);
-  fclose(ofp);
-}
+      }
+      fclose(ifp);
+      fclose(ofp);
+     }
 
-
+void decrypt(){
+  FILE *ifp, *ofp;
+  ifp = fopen(passtxt, "r+");
+  ofp = fopen(encpass, "w+");
+  int postion = 0;
+  int bytes_read, bytes_write;
+  while(1){
+    unsigned char ivec[AES_BLOCK_SIZE];
+    memcpy(ivec, IV, AES_BLOCK_SIZE);
+    bytes_read = fread(outdata, 1, AES_BLOCK_SIZE, ifp);
+    AES_cfb128_encrypt(outdata, decryptdata, bytes_read, &key, ivec, &postion, AES_DECRYPT);
+    bytes_write = fwrite(decryptdata, 1, bytes_read, ofp);
+    if (bytes_read < AES_BLOCK_SIZE)
+      break;
+    }
+    fclose(ifp);
+    fclose(ofp);
+   }
 
   if (access(passtxt, F_OK) == 0) {
     while (1) {
