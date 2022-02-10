@@ -1,6 +1,9 @@
 // TODO:
 // add $home etc and same for windows so it works for all systems - enviroment variables
 // look into encryption of password and entries.
+// signature: this is the file that you want to encrypt
+// encrypted: the file which encrypted from "signature"
+// decrypted: the file which decrypted from "encrypted", it should be the same as "signature"
 
 #include <string.h>
 #include <unistd.h>
@@ -29,6 +32,9 @@ int main() {
   unsigned char userkey[] = "\x09\x8F\x6B\xCD\x46\x21\xD3\x73\xCA\xDE\x4E\x83\x26\x27\xB4\xF6";
   unsigned char IV[] = "\x0A\x91\x72\x71\x6A\xE6\x42\x84\x09\x88\x5B\x8B\x82\x9C\xCB\x05";
 
+  AES_KEY key;
+  AES_set_encrypt_key(userkey, 128, &key);
+
   char entry[150];
   char filename[65];
   char currenttime[20];
@@ -53,12 +59,13 @@ int main() {
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
-  AES_KEY key;
-
   FILE * fp;
   FILE * pc;
   DIR * d;
+  FILE * opfp;
 
+  strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
+  strcat(strcpy(encpass, getenv("HOME")), "/.config/memoirpass/passenc.txt");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
 
@@ -70,7 +77,7 @@ int main() {
 
   void landingmsg() {
     printf("Would you like to create an entry or append an existing entry?\n");
-    printf("Please choose create or append, use help to list additional commands.\n");
+    printf("Please choose create or append, use help to list commands.\n");
   }
 
   void screenwipe() {
@@ -126,7 +133,30 @@ int main() {
     }
   }
 
-  void encrypt() {
+  void encryptpass() {
+    FILE *ifp, *ofp;
+    ifp = fopen(passtxt, "r+");
+    if( ifp == NULL ) 
+    perror("Error: ");
+    ofp = fopen(encpass, "w+");
+    if( ofp == NULL ) 
+    perror("Error: ");
+    int postion = 0;
+    int bytes_read, bytes_write;
+    while (1) {
+      unsigned char ivec[AES_BLOCK_SIZE];
+      memcpy(ivec, IV, AES_BLOCK_SIZE);
+      bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
+      AES_cfb128_encrypt(indata, outdata, bytes_read, &key, ivec, &postion, AES_ENCRYPT);
+      bytes_write = fwrite(outdata, 1, bytes_read, ofp);
+      if (bytes_read < AES_BLOCK_SIZE)
+        remove(passtxt);
+        break;
+    }
+    fclose(ofp);
+  }
+
+  void decryptpass() {
     FILE * ifp, * ofp;
     ifp = fopen(encpass, "r+");
     ofp = fopen(passtxt, "w+");
@@ -135,48 +165,28 @@ int main() {
     while (1) {
       unsigned char ivec[AES_BLOCK_SIZE];
       memcpy(ivec, IV, AES_BLOCK_SIZE);
-      bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(indata, outdata, bytes_read, & key, ivec, & postion, AES_ENCRYPT);
-      bytes_write = fwrite(outdata, 1, bytes_read, ofp);
-      if (bytes_read < AES_BLOCK_SIZE)
-        break;
-    }
-    fclose(ifp);
-    fclose(ofp);
-  }
-
-  void decrypt() {
-    FILE * ifp, * ofp;
-    ifp = fopen(passtxt, "r+");
-    ofp = fopen(encpass, "w+");
-    int postion = 0;
-    int bytes_read, bytes_write;
-    while (1) {
-      unsigned char ivec[AES_BLOCK_SIZE];
-      memcpy(ivec, IV, AES_BLOCK_SIZE);
       bytes_read = fread(outdata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, & key, ivec, & postion, AES_DECRYPT);
+      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, &key, ivec, &postion, AES_DECRYPT);
       bytes_write = fwrite(decryptdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
+        remove(encpass);
         break;
     }
     fclose(ifp);
-    fclose(ofp);
   }
 
-  if (access(passtxt, F_OK) == 0) {
+  if (access(encpass, F_OK) == 0) {
     while (1) {
+      decryptpass();
       FILE * f = fopen(passtxt, "r");
       fseek(f, 0, SEEK_END);
       long fsize = ftell(f);
       fseek(f, 0, SEEK_SET);
-
       char * pass = malloc(fsize + 1);
       fread(pass, fsize, 1, f);
       fclose(f);
-
       pass[fsize] = 0;
-
+      encryptpass();
       passcheck = strdup(getpass("Please enter the password to your diary: "));
       if (strcmp(pass, passcheck) == 0) { //compare strings
         printf("You entered the right password!\n");
@@ -245,7 +255,7 @@ int main() {
     pc = fopen(passtxt, "w");
     fprintf(pc, "%s", setpass);
     fclose(pc);
-    encrypt();
+    encryptpass();
     printf("%s will now be set as your password on next launch.\n\n", setpass);
     printf("It seems you also don't have a folder directory set for your diary entries.\n"
       "Would you like to set it on your own or have it in your docuemnts folder?\n"
@@ -256,8 +266,8 @@ int main() {
         mkdir(docent, 0700);
         printf("Chosen directory created.");
       } else {
-        chdir(getenv("HOME"));
         printf("Current working directory: %s\n", getenv("HOME"));
+        chdir(getenv("HOME"));
         scanf("%s", entry);
         mkdir(entry, 0700);
         printf("Chosen directory created.");
