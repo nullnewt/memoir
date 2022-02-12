@@ -1,9 +1,6 @@
 // TODO:
 // add $home etc and same for windows so it works for all systems - enviroment variables
-// look into encryption of password and entries.
-// signature: this is the file that you want to encrypt
-// encrypted: the file which encrypted from "signature"
-// decrypted: the file which decrypted from "encrypted", it should be the same as "signature"
+// Look into encrypting diary entries entries, regex maybe?
 
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +12,7 @@
 #include <sys/types.h>
 #include <linux/limits.h>
 #include <openssl/aes.h>
+#include <glob.h>
 
 int main() {
   const char * documents = "documents";
@@ -33,7 +31,7 @@ int main() {
   unsigned char IV[] = "\x0A\x91\x72\x71\x6A\xE6\x42\x84\x09\x88\x5B\x8B\x82\x9C\xCB\x05";
 
   AES_KEY key;
-  AES_set_encrypt_key(userkey, 128, &key);
+  AES_set_encrypt_key(userkey, 128, & key);
 
   char entry[150];
   char filename[65];
@@ -50,6 +48,7 @@ int main() {
   char * reenter;
   char * diary;
   char * passcheck;
+  char ** found;
 
   appendstr = malloc(sizeof(char) * 1024);
   diarystr = malloc(sizeof(char) * 1024);
@@ -68,6 +67,25 @@ int main() {
   strcat(strcpy(encpass, getenv("HOME")), "/.config/memoirpass/passenc.txt");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
+
+  void globentries() {
+    glob_t gstruct;
+    int r;
+    chdir(docent);
+    r = glob("*.txt", GLOB_ERR, NULL, & gstruct);
+    if (r != 0) {
+      if (r == GLOB_NOMATCH)
+        perror("Error: ");
+      else perror("Error: ");
+    }
+
+    /* success, output found filenames */
+    found = gstruct.gl_pathv;
+    while ( * found) {
+      printf("%s\n", * found);
+      found++;
+    }
+  }
 
   void timestamp() {
     strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
@@ -107,6 +125,8 @@ int main() {
         break;
       } else if (strcmp(n, entry) == 0) {
         fp = fopen(filename, "a");
+        if (fp == NULL)
+          perror("Error: ");
         printf("%s ", appendstr);
         scanf(" %[^\n]s*c", diarystr);
         fprintf(fp, "%s%s %s\n", currenttime, appendstr, diarystr);
@@ -134,25 +154,26 @@ int main() {
   }
 
   void encryptpass() {
-    FILE *ifp, *ofp;
+    FILE * ifp, * ofp;
     ifp = fopen(passtxt, "r+");
-    if( ifp == NULL ) 
-    perror("Error: ");
+    if (ifp == NULL)
+      perror("Error: ");
     ofp = fopen(encpass, "w+");
-    if( ofp == NULL ) 
-    perror("Error: ");
+    if (ofp == NULL)
+      perror("Error: ");
     int postion = 0;
     int bytes_read, bytes_write;
     while (1) {
       unsigned char ivec[AES_BLOCK_SIZE];
       memcpy(ivec, IV, AES_BLOCK_SIZE);
       bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(indata, outdata, bytes_read, &key, ivec, &postion, AES_ENCRYPT);
+      AES_cfb128_encrypt(indata, outdata, bytes_read, & key, ivec, & postion, AES_ENCRYPT);
       bytes_write = fwrite(outdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
         remove(passtxt);
-        break;
+      break;
     }
+    fclose(ifp);
     fclose(ofp);
   }
 
@@ -166,18 +187,19 @@ int main() {
       unsigned char ivec[AES_BLOCK_SIZE];
       memcpy(ivec, IV, AES_BLOCK_SIZE);
       bytes_read = fread(outdata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, &key, ivec, &postion, AES_DECRYPT);
+      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, & key, ivec, & postion, AES_DECRYPT);
       bytes_write = fwrite(decryptdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
         remove(encpass);
-        break;
+      break;
     }
     fclose(ifp);
+    fclose(ofp);
   }
 
   if (access(encpass, F_OK) == 0) {
+    decryptpass();
     while (1) {
-      decryptpass();
       FILE * f = fopen(passtxt, "r");
       fseek(f, 0, SEEK_END);
       long fsize = ftell(f);
@@ -205,21 +227,21 @@ int main() {
             promptapp();
           } else if (strcmp(create, entry) == 0) {
             timestamp();
-            fp = fopen(filename, "w"); // creates file
-            screenwipe(); // wipes  cmd again for diary entry
+            fp = fopen(filename, "w");
+            screenwipe();
             printf("Begin diary entry:\nPress enter to confirm your diary entry.\n");
-            scanf(" %[^\n]s", diary); // takes diary entry 
+            scanf(" %[^\n]s", diary);
             fprintf(fp, "%s%s\n", currenttime, diary);
-            fclose(fp); // close the file after entry is done
+            fclose(fp);
             promptcre();
           } else if (strcmp(view, entry) == 0) {
             struct dirent * dir;
             d = opendir(doc); // set dir
             if (d) {
-              while ((dir = readdir(d)) != NULL) { // read dir
-                printf("%s\n", dir -> d_name); // print directory in char 
+              while ((dir = readdir(d)) != NULL) {
+                printf("%s\n", dir -> d_name);
               }
-              closedir(d); // close dir
+              closedir(d);
             }
             sleep(1);
             landingmsg();
@@ -242,6 +264,7 @@ int main() {
         }
       } else {
         printf("Wrong password, please try again.\n");
+        decryptpass();
       }
     }
     screenwipe();
@@ -253,6 +276,8 @@ int main() {
     promptpass();
     mkdir(passpath, 0700);
     pc = fopen(passtxt, "w");
+    if (pc == NULL)
+      perror("Error: ");
     fprintf(pc, "%s", setpass);
     fclose(pc);
     encryptpass();
