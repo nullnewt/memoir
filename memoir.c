@@ -15,14 +15,14 @@
 #include <glob.h>
 
 int main() {
-  const char * documents = "documents";
-  const char * append = "append";
-  const char * create = "create";
-  const char * view = "view";
-  const char * help = "help";
-  const char * y = "y";
-  const char * n = "n";
-  const char * fin = "fin";
+  const char *documents = "documents";
+  const char *append = "append";
+  const char *create = "create";
+  const char *view = "view";
+  const char *help = "help";
+  const char *y = "y";
+  const char *n = "n";
+  const char *fin = "fin";
 
   unsigned char indata[AES_BLOCK_SIZE];
   unsigned char outdata[AES_BLOCK_SIZE];
@@ -41,51 +41,36 @@ int main() {
   char docent[PATH_MAX];
   char doc[PATH_MAX];
   char encpass[PATH_MAX];
+  char entryenc2[PATH_MAX];
 
-  char * appendstr;
-  char * diarystr;
-  char * setpass;
-  char * reenter;
-  char * diary;
-  char * passcheck;
-  char ** found;
+  char *appendstr;
+  char *diarystr;
+  char *setpass;
+  char *reenter;
+  char *diary;
+  char *filebuffer;
+  char *passcheck;
+  char **found;
+  char **seen;
 
   appendstr = malloc(sizeof(char) * 1024);
   diarystr = malloc(sizeof(char) * 1024);
   diary = malloc(sizeof(char) * 1024);
+  filebuffer = malloc(sizeof(char) * 1024);
 
-  struct tm * timenow;
+  struct tm *timenow;
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
-  FILE * fp;
-  FILE * pc;
-  DIR * d;
-  FILE * opfp;
+  FILE *fp;
+  FILE *pc;
+  DIR *d;
+  FILE *opfp;
 
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
-  strcat(strcpy(encpass, getenv("HOME")), "/.config/memoirpass/passenc.txt");
+  strcat(strcpy(encpass, getenv("HOME")), "/.config/memoirpass/passenc");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
-
-  void globentries() {
-    glob_t gstruct;
-    int r;
-    chdir(docent);
-    r = glob("*.txt", GLOB_ERR, NULL, & gstruct);
-    if (r != 0) {
-      if (r == GLOB_NOMATCH)
-        perror("Error: ");
-      else perror("Error: ");
-    }
-
-    /* success, output found filenames */
-    found = gstruct.gl_pathv;
-    while ( * found) {
-      printf("%s\n", * found);
-      found++;
-    }
-  }
 
   void timestamp() {
     strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
@@ -101,6 +86,44 @@ int main() {
   void screenwipe() {
     sleep(1);
     printf("\e[1;1H\e[2J");
+  }
+
+  void viewfiles() {
+    glob_t gstruct;
+    int r;
+    chdir(docent);
+    r = glob("*.txt", GLOB_ERR, NULL, & gstruct);
+    if (r != 0) {
+      if (r == GLOB_NOMATCH)
+        perror("Error: ");
+      else perror("Error: ");
+    }
+
+    seen = gstruct.gl_pathv;
+    while ( * seen) {
+      printf("%s\n", * seen);
+      seen++;
+    }
+  }
+
+  void globentries() {
+    strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
+    chdir(docent);  
+    glob_t gstruct;
+    int r;
+    chdir(docent);
+    r = glob("*.txt", GLOB_ERR, NULL, &gstruct);
+    if (r != 0) {
+      if (r == GLOB_NOMATCH)
+         perror("Error: ");
+      else perror("Error: ");
+    }
+
+    found = gstruct.gl_pathv;
+    while ( * found) {
+      sprintf(* found, "%s", filebuffer);
+      found++;
+    }
   }
 
   void promptpass() {
@@ -153,6 +176,35 @@ int main() {
     }
   }
 
+  void encryptentries(){
+    strcat(strcpy(entryenc2, getenv("HOME")), "/Documents/Mementries/fileXXXXXX");
+    chdir(doc);
+    globentries();
+    FILE *ifp, *ofp;
+    while (1){
+    ifp = fopen(filebuffer, "r+");
+    if (ifp == NULL)
+      perror("Error: ");
+    mkstemp(entryenc2);
+    ofp = fopen(entryenc2, "w+");
+    if (ofp == NULL)
+      perror("Error: ");
+    int postion = 0;
+    int bytes_read, bytes_write;
+    while (1) {
+      unsigned char ivec[AES_BLOCK_SIZE];
+      memcpy(ivec, IV, AES_BLOCK_SIZE);
+      bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
+      AES_cfb128_encrypt(indata, outdata, bytes_read, &key, ivec, &postion, AES_ENCRYPT);
+      bytes_write = fwrite(outdata, 1, bytes_read, ofp);
+   if (bytes_read < AES_BLOCK_SIZE)
+        remove(filebuffer);
+    }
+   }
+   fclose(ifp);
+   fclose(ofp);
+  }
+
   void encryptpass() {
     FILE * ifp, * ofp;
     ifp = fopen(passtxt, "r+");
@@ -167,7 +219,7 @@ int main() {
       unsigned char ivec[AES_BLOCK_SIZE];
       memcpy(ivec, IV, AES_BLOCK_SIZE);
       bytes_read = fread(indata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(indata, outdata, bytes_read, & key, ivec, & postion, AES_ENCRYPT);
+      AES_cfb128_encrypt(indata, outdata, bytes_read, &key, ivec, &postion, AES_ENCRYPT);
       bytes_write = fwrite(outdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
         remove(passtxt);
@@ -187,7 +239,7 @@ int main() {
       unsigned char ivec[AES_BLOCK_SIZE];
       memcpy(ivec, IV, AES_BLOCK_SIZE);
       bytes_read = fread(outdata, 1, AES_BLOCK_SIZE, ifp);
-      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, & key, ivec, & postion, AES_DECRYPT);
+      AES_cfb128_encrypt(outdata, decryptdata, bytes_read, &key, ivec, &postion, AES_DECRYPT);
       bytes_write = fwrite(decryptdata, 1, bytes_read, ofp);
       if (bytes_read < AES_BLOCK_SIZE)
         remove(encpass);
@@ -235,13 +287,8 @@ int main() {
             fclose(fp);
             promptcre();
           } else if (strcmp(view, entry) == 0) {
-            struct dirent * dir;
-            d = opendir(doc); // set dir
-            if (d) {
-              while ((dir = readdir(d)) != NULL) {
-                printf("%s\n", dir -> d_name);
-              }
-              closedir(d);
+            {
+              viewfiles();
             }
             sleep(1);
             landingmsg();
@@ -281,6 +328,7 @@ int main() {
     fprintf(pc, "%s", setpass);
     fclose(pc);
     encryptpass();
+    globentries();
     printf("%s will now be set as your password on next launch.\n\n", setpass);
     printf("It seems you also don't have a folder directory set for your diary entries.\n"
       "Would you like to set it on your own or have it in your docuemnts folder?\n"
@@ -304,5 +352,6 @@ int main() {
   free(setpass);
   free(reenter);
   free(diary);
+  free(filebuffer);
   return (0);
 }
