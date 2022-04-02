@@ -13,7 +13,7 @@
 #include <openssl/aes.h>
 #include <glob.h>
 
-const char *encrypted = ".encrypted";
+const char *aes = ".aes";
 const char *documents = "documents";
 const char *append = "append";
 const char *create = "create";
@@ -29,6 +29,7 @@ unsigned char decryptdata[AES_BLOCK_SIZE];
 unsigned char userkey[] = "\x09\x8F\x6B\xCD\x46\x21\xD3\x73\xCA\xDE\x4E\x83\x26\x27\xB4\xF6";
 unsigned char IV[] = "\x0A\x91\x72\x71\x6A\xE6\x42\x84\x09\x88\x5B\x8B\x82\x9C\xCB\x05";
 
+char placeholder[10];
 char filebuffer[10];
 char filebuffer2[10];
 char fnamstxt[50];
@@ -171,7 +172,6 @@ int main() {
         if (r == 0) {
           if (r == GLOB_NOMATCH)
             perror("Error: ");
-          // else perror("Error: ");
         }
         found = gstruct.gl_pathv;
         while ( *found) {
@@ -179,7 +179,7 @@ int main() {
           sprintf(filebuffer2, "%s", *found);
           found++;
         }
-        strcat(filebuffer2, encrypted);
+        strcat(filebuffer2, aes);
         ifp = fopen(filebuffer, "r+");
         if (ifp == NULL)
           perror("Error input file");
@@ -205,45 +205,50 @@ int main() {
   } 
 
   void decryptentries() {
+    { 
     chdir(docent);
-    system("ls -1 file* | wc -l  >> output.txt");
-    FILE * f = fopen("output.txt", "r");
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    int * numbuffer = malloc(fsize + 1);
-    fread(numbuffer, fsize, 1, f);
-    fclose(f);
-    numbuffer[fsize] = 0;
+    system("ls -1 *.aes | wc -l  >> output.txt");
+    FILE *f = fopen("output.txt", "r");
+    fscanf(f, "%d", numbuffer);
     holding = *numbuffer;
     remove("output.txt");
+    }
 
     for (i = 0; i < holding; ++i) {
       {
         glob_t gstruct;
-        r = glob("file*", GLOB_ERR, NULL, & gstruct);
+        r = glob("*.aes", GLOB_ERR, NULL, & gstruct);
         if (r == 0) {
           if (r == GLOB_NOMATCH)
-            perror("Error: ");
-          else perror("Error: ");
+            perror("Glob Error: ");
         }
         found = gstruct.gl_pathv;
         while ( *found) {
-          sprintf(encbuffer, "%s", *found);
+          sprintf(filebuffer2, "%s", *found);
+          sprintf(filebuffer, "%s", *found);
           found++;
         }
-        ifp = fopen(encbuffer, "r+");
-        ofp = fopen(filenames, "w+");
+        memset(placeholder,'\0', sizeof(placeholder));
+        // strcpy(filebuffer, "%s");
+        strncpy(placeholder,filebuffer, 14);
+        printf("%s", placeholder);
+
+        ifp = fopen(filebuffer2, "r+");
+        if (ifp == NULL)
+          perror("input error");
+        ofp = fopen(placeholder, "w+");
+        if (ofp == NULL)
+          perror("output error");
         int postion = 0;
         int bytes_read, bytes_write;
-        while (1) {
+        while (i < holding) {
           unsigned char ivec[AES_BLOCK_SIZE];
           memcpy(ivec, IV, AES_BLOCK_SIZE);
           bytes_read = fread(outdata, 1, AES_BLOCK_SIZE, ifp);
           AES_cfb128_encrypt(outdata, decryptdata, bytes_read, & key, ivec, & postion, AES_DECRYPT);
           bytes_write = fwrite(decryptdata, 1, bytes_read, ofp);
           if (bytes_read < AES_BLOCK_SIZE)
-            remove(encbuffer);
+            remove(filebuffer2);
           break;
         }
         fclose(ifp);
@@ -298,7 +303,6 @@ int main() {
 
   if (access(encpass, F_OK) == 0) {
     decryptpass();
-    // decryptentries();
     while (1) {
       FILE * f = fopen(passtxt, "r");
       fseek(f, 0, SEEK_END);
@@ -313,6 +317,7 @@ int main() {
       if (strcmp(pass, passcheck) == 0) {
         //compare strings
         printf("You entered the right password!\n");
+        decryptentries();
         screenwipe();
         landingmsg();
         while (1) {
