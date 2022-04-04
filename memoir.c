@@ -1,6 +1,3 @@
-// TODO:
-// add $home etc and same for windows so it works for all systems - enviroment variables
-
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -12,6 +9,7 @@
 #include <linux/limits.h>
 #include <openssl/aes.h>
 #include <glob.h>
+#include <signal.h>
 
 const char *aes = ".aes";
 const char *documents = "documents";
@@ -300,6 +298,14 @@ int main() {
     fclose(ofp);
   }
 
+  void sig_handler(int signum){
+    encryptentries();
+    exit(0);
+  }
+
+  signal(SIGINT,sig_handler);
+  while(1){
+
   if (access(encpass, F_OK) == 0) {
     decryptpass();
     while (1) {
@@ -429,6 +435,7 @@ int main() {
       }
     }
   }
+}
 
   free(appendstr);
   free(diarystr);
@@ -437,6 +444,5 @@ int main() {
   free(diary);
   free(filebuffer);
 
-  atexit(encryptentries);
   return (0);
 }
