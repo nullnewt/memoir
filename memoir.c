@@ -180,6 +180,7 @@ int main() {
           found++;
         }
         strcat(filebuffer2, aes);
+        // printf("%s",filebuffer2);
         ifp = fopen(filebuffer, "r+");
         if (ifp == NULL)
           perror("Error input file");
@@ -229,7 +230,6 @@ int main() {
           found++;
         }
         memset(placeholder,'\0', sizeof(placeholder));
-        // strcpy(filebuffer, "%s");
         strncpy(placeholder,filebuffer, 14);
         printf("%s", placeholder);
 
