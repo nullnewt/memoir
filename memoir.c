@@ -68,7 +68,6 @@ FILE *fp;
 FILE *pc;
 FILE *opfp;
 FILE *f;
-FILE *fnams;
 
 int main() {
 
@@ -84,11 +83,11 @@ int main() {
   time_t now = time(NULL);
   timenow = gmtime( & now);
 
+  char* home = getenv("HOME");
   strcat(strcpy(passtxt, getenv("HOME")), "/.config/memoirpass/pass.txt");
   strcat(strcpy(encpass, getenv("HOME")), "/.config/memoirpass/passenc");
   strcat(strcpy(passpath, getenv("HOME")), "/.config/memoirpass/");
   strcat(strcpy(docent, getenv("HOME")), "/Documents/Mementries");
-  strcat(strcpy(fnamstxt, getenv("HOME")), "/Documents/Mementries/filenames.txt");
 
   void timestamp() {
     strcat(strcpy(doc, getenv("HOME")), "/Documents/Mementries/%d-%m-%Y.txt");
@@ -418,13 +417,15 @@ int main() {
       scanf("%s", entry);
       if (strcmp(documents, entry) == 0) {
         mkdir(docent, 0700);
-        printf("Chosen directory created.");
+        printf("Chosen directory created inside \"%s\"\nPlease re-run memoir to use your diary.",docent);
+        exit(0);
       } else {
         printf("Current working directory: %s\n", getenv("HOME"));
         chdir(getenv("HOME"));
         scanf("%s", entry);
         mkdir(entry, 0700);
-        printf("Chosen directory created.");
+        printf("Chosen directory created inside \"%s/%s\"\nPlease re-run memoir to use your diary.",home,entry);
+        exit(0);
       }
     }
   }
@@ -435,5 +436,7 @@ int main() {
   free(reenter);
   free(diary);
   free(filebuffer);
+
+  atexit(encryptentries);
   return (0);
 }
